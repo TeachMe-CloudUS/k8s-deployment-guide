@@ -1,0 +1,41 @@
+# Description: ConfigMap for the TeachMe application
+############################################################################################################
+# Config Map
+############################################################################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: teachme-config
+data:
+  MONGODB_AUTH_SERVICE: MONGODB_ENDPOINT_FROM_MONGODB_ATLAS
+  MONGODB_STUDENT_SERVICE: MONGODB_ENDPOINT_FROM_MONGODB_ATLAS
+  MONGODB_COURSE_SERVICE: MONGODB_ENDPOINT_FROM_MONGODB_ATLAS
+  MONGODB_RATING_SERVICE: MONGODB_ENDPOINT_FROM_MONGODB_ATLAS
+  MONGODB_FORUM_SERVICE: MONGODB_ENDPOINT_FROM_MONGODB_ATLAS
+  MONGODB_CERTIFICATION_SERVICE: MONGODB_ENDPOINT_FROM_MONGODB_ATLAS
+  MONGODB_NOTIFICATION_SERVICE: MONGODB_ENDPOINT_FROM_MONGODB_ATLAS
+
+  SECRET_KEY: m56cYXCl2TxvV1/fwxLGziK5kVGT+kyOgMz7cIUdCjYuydbtvYXsLCIb2M4REzROggLh1zjEHKCu
+
+  AZURITE_ACCOUNTS: teachmeblobstorage:3QJ6Q6Q6
+  BLOB_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=teachmeblobstorage;AccountKey=3QJ6Q6Q6;BlobEndpoint=http://blob-storage-service:10000/teachmeblobstorage;QueueEndpoint=http://blob-storage-service:10001/teachmeblobstorage;TableEndpoint=http://blob-storage-service:10002/teachmeblobstorage
+  BLOB_STORAGE_CONTAINER_NAME: teachme
+
+  OPENAI_API_KEY: YOUR_OPENAI_API_KEY_HERE
+  YOUTUBE_API_KEY: YOUR_YOUTUBE_API_KEY_HERE
+  BADWORDS_API_KEY: YOUR_BADWORDS_API_KEY_HERE
+  BADWORDS_API_URL: https://community-purgomalum.p.rapidapi.com/json?text=
+
+  SENDGRID_API_KEY: YOUR_SENDGRID_API_KEY_HERE
+  SENDGRID_FROM: noreply@teachme.com
+
+  BASE_URL: http://localhost:8080
+
+  AUTH_SERVICE_URI: http://auth-service:8080
+  STUDENT_SERVICE_URI: http://student-service:8080
+  RATING_SERVICE_URI: http://rating-service:8080
+  COURSE_SERVICE_URI: http://course-service:8080
+  FORUM_SERVICE_URI: http://forum-service:8080
+  CERTIFICATION_SERVICE_URI: http://certification-service:8080
+  NOTIFICATION_SERVICE_URI: http://notification-service:8080
+  FRONTEND_SERVICE_URI: http://frontend-service:8080

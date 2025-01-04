@@ -1,0 +1,456 @@
+# Description: This file contains the Kubernetes manifest for the TeachMe application services.
+# It contains the configuration for the following services:
+# - Auth Service
+# - Student Service
+# - Course Service
+# - Forum Service
+# - Rating Service
+# - Certification Service (TODO)
+# - Notification Service (TODO)
+# - Frontend Service
+# - API Gateway
+############################################################################################################
+# Auth Service
+############################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-backend
+  template:
+    metadata:
+      labels:
+        app: auth-backend
+    spec:
+      containers:
+        - name: auth-backend
+          image: ghcr.io/teachme-cloudus/teachme-auth-service:master
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: MONGODB_AUTH_SERVICE
+            - name: SECRET_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: SECRET_KEY
+            - name: SENDGRID_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: SENDGRID_API_KEY
+            - name: SENDGRID_FROM
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: SENDGRID_FROM
+            - name: BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BASE_URL
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+############################################################################################################
+# Student Service
+############################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: student-backend
+  template:
+    metadata:
+      labels:
+        app: student-backend
+    spec:
+      containers:
+        - name: student-backend
+          image: raminkr/teachme-student-service:10d08d4167d833a3b760ca9f638855d74b7d3bdc
+          command: ["java", "-jar", "/app/student-service.jar"]
+          args:
+            [
+              "--spring.data.redis.host=redis-service",
+              "--kafka-config.bootstrap-server=http://kafka-service:9092",
+            ]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: BLOB_STORAGE_CONTAINER_NAME
+              value: profile-pictures
+            - name: BLOB_STORAGE_CONNECTION_STRING
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BLOB_STORAGE_CONNECTION_STRING
+            - name: SECURITY_JWT_SECRET_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: SECRET_KEY
+            - name: TEACHME_COURSE_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: COURSE_SERVICE_URI
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: MONGODB_STUDENT_SERVICE
+            - name: SPRING_DATA_MONGODB_DATABASE
+              value: students
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-service
+spec:
+  selector:
+    app: student-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+############################################################################################################
+# Course Service
+############################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: course-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: course-backend
+  template:
+    metadata:
+      labels:
+        app: course-backend
+    spec:
+      containers:
+        - name: course-backend
+          image: pedlopruz/course-service:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: MONGODB_COURSE_SERVICE
+            - name: YOUTUBE_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: YOUTUBE_API_KEY
+            - name: BASE_URL
+              value: http://auth-service:8080/api/v1/users/
+            - name: FORUM_CREATED_URL
+              value: http://forum-service:8080/api/v1/forums
+            - name: FORUM_DELETE_URL
+              value: http://forum-service:8080/api/v1/forums/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: course-service
+spec:
+  selector:
+    app: course-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8081
+  type: ClusterIP
+---
+############################################################################################################
+# Forum Service
+############################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forum-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: forum-backend
+  template:
+    metadata:
+      labels:
+        app: forum-backend
+    spec:
+      containers:
+        - name: forum-backend
+          image: martirl11/forum-service:latest
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: MONGODB_FORUM_SERVICE
+            - name: BASE_URL
+              value: http://auth-service:8080/api/v1/users/
+            - name: BADWORDS_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BADWORDS_API_KEY
+            - name: BADWORDS_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BADWORDS_API_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: forum-service
+spec:
+  selector:
+    app: forum-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+############################################################################################################
+# Rating Service
+############################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rating-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rating-backend
+  template:
+    metadata:
+      labels:
+        app: rating-backend
+    spec:
+      containers:
+        - name: rating-backend
+          image: lucperrom1/teachme-ratings-service-rating-service:latest
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: MONGODB_RATING_SERVICE
+            - name: SPRING_DATA_MONGODB_DATABASE
+              value: ratings
+            - name: BASE_URL
+              value: http://auth-service:8080/api/v1/users/
+            - name: RATING_URL
+              value: /rating
+            - name: COURSES_URL
+              value: http://course-service:8080/api/v1/courses
+            - name: STUDENT_URL
+              value: http://student-service:8080/api/v1/students/me
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rating-service
+spec:
+  selector:
+    app: rating-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+############################################################################################################
+# Certification Service
+############################################################################################################
+#
+# TODO: Add the Certification Service Deployment and Service here
+#
+############################################################################################################
+# Notification Service
+############################################################################################################
+#
+# TODO: Add the Notification Service Deployment and Service here
+#
+############################################################################################################
+# Frontend Service
+############################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-backend
+  template:
+    metadata:
+      labels:
+        app: frontend-backend
+    spec:
+      containers:
+        - name: frontend-backend
+          image: ghcr.io/teachme-cloudus/teachme-frontend:latest
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: VITE_OPENAI_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: OPENAI_API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  selector:
+    app: frontend-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 3000
+  type: ClusterIP
+---
+############################################################################################################
+# API Gateway
+############################################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway-backend
+  template:
+    metadata:
+      labels:
+        app: gateway-backend
+    spec:
+      containers:
+        - name: gateway-backend
+          image: ghcr.io/teachme-cloudus/teachme-api-gateway:master
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SECURITY_JWT_SECRET_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: SECRET_KEY
+            - name: AUTH_SERVICE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: AUTH_SERVICE_URI
+            - name: STUDENT_SERVICE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: STUDENT_SERVICE_URI
+            - name: RATING_SERVICE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: RATING_SERVICE_URI
+            - name: COURSE_SERVICE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: COURSE_SERVICE_URI
+            - name: FORUM_SERVICE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: FORUM_SERVICE_URI
+            - name: CERTIFICATION_SERVICE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: CERTIFICATION_SERVICE_URI
+            - name: NOTIFICATION_SERVICE_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: NOTIFICATION_SERVICE_URI
+            - name: FRONTEND_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: FRONTEND_SERVICE_URI
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+spec:
+  selector:
+    app: gateway-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: NodePort
+---
+
