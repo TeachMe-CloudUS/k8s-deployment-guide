@@ -389,6 +389,29 @@ spec:
   type: ClusterIP
 ---
 ############################################################################################################
+# Ingress Controller for Websocket Connections
+############################################################################################################
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: notification-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: notification.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  number: 8080
+---
+############################################################################################################
 # Frontend Service
 ############################################################################################################
 apiVersion: apps/v1

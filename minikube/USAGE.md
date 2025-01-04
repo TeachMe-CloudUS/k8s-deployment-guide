@@ -13,12 +13,18 @@ Antes de comenzar, asegúrate de tener instalados los siguientes componentes:
 
 1. **Iniciar Minikube**:
    Abre una terminal y ejecuta el siguiente comando para iniciar Minikube:
-
+jk
 ```sh
 minikube start
 ```
 
-2. **Aplicar los archivos de Kubernetes**:
+2. **Activar ingress**:
+  Ejecuta:
+```shell
+minikube addons enable ingress
+```
+
+3. **Aplicar los archivos de Kubernetes**:
    Ejecuta el siguiente comando para aplicar todos los archivos de configuración de Kubernetes en la carpeta:
 
 ```sh
@@ -27,7 +33,7 @@ kubectl apply -f infraestructure.yml
 kubectl apply -f services.yml
 ```
 
-3. **Verificar los recursos desplegados**:
+4. **Verificar los recursos desplegados**:
    Puedes verificar que los recursos se hayan creado correctamente con los siguientes comandos:
 
 ```sh
