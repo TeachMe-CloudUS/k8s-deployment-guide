@@ -324,9 +324,70 @@ spec:
 ############################################################################################################
 # Notification Service
 ############################################################################################################
-#
-# TODO: Add the Notification Service Deployment and Service here
-#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-backend
+  template:
+    metadata:
+      labels:
+        app: notification-backend
+    spec:
+      containers:
+        - name: notification-backend
+          image: raminkr/teachme-notification-service:2936599f41e5a645c092a8848514103096760fac
+          command: ["java", "-jar", "/app/notification-service.jar"]
+          args:
+            [
+              "--spring.data.redis.host=redis-service",
+              "--kafka-config.bootstrap-server=http://kafka-service:9092",
+            ]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SECURITY_JWT_SECRET_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: SECRET_KEY
+            - name: TEACHME_STUDENT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: STUDENT_SERVICE_URI
+            - name: TEACHME_EMAIL_AZURE_FUNCTION_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: TEACHME_EMAIL_AZURE_FUNCTION_URL
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: MONGODB_STUDENT_SERVICE
+            - name: SPRING_DATA_MONGODB_DATABASE
+              value: students
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  selector:
+    app: notification-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
 ############################################################################################################
 # Frontend Service
 ############################################################################################################
