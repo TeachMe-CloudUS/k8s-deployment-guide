@@ -117,6 +117,11 @@ spec:
                 configMapKeyRef:
                   name: teachme-config
                   key: BASE_URL
+            - name: SPRING_DATA_REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: REDIS_HOST
             - name: BLOB_STORAGE_CONNECTION_STRING
               valueFrom:
                 configMapKeyRef:
@@ -141,8 +146,8 @@ spec:
               value: students
             - name: KAFKA_CONFIG_BOOTSTRAP_SERVER
               value: kafka-service:9092
-            - name: SPRING_DATA_REDIS_HOST
-              value: redis-service
+            - name: TEACHME_CACHE_ENABLED
+              value: "true"
 ---
 apiVersion: v1
 kind: Service
