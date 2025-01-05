@@ -112,6 +112,11 @@ spec:
           env:
             - name: BLOB_STORAGE_CONTAINER_NAME
               value: profile-pictures
+            - name: GATEWAY_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BASE_URL
             - name: BLOB_STORAGE_CONNECTION_STRING
               valueFrom:
                 configMapKeyRef:
@@ -448,6 +453,11 @@ spec:
                 configMapKeyRef:
                   name: teachme-config
                   key: SECRET_KEY
+            - name: GATEWAY_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BASE_URL
             - name: TEACHME_STUDENT_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
