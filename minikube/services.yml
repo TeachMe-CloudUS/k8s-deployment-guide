@@ -12,6 +12,7 @@
 ############################################################################################################
 # Auth Service
 ############################################################################################################
+# https://github.com/TeachMe-CloudUS/teachme-auth-service/pkgs/container/teachme-auth-service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,7 +29,7 @@ spec:
     spec:
       containers:
         - name: auth-backend
-          image: ghcr.io/teachme-cloudus/teachme-auth-service:master
+          image: ghcr.io/teachme-cloudus/teachme-auth-service:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -60,6 +61,8 @@ spec:
                 configMapKeyRef:
                   name: teachme-config
                   key: BASE_URL
+            - name: KAFKA_SERVICE_URI
+              value: kafka-service:9092
           readinessProbe:
             httpGet:
               path: /api/health
@@ -83,6 +86,7 @@ spec:
 ############################################################################################################
 # Student Service
 ############################################################################################################
+# https://hub.docker.com/r/raminkr/teachme-student-service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -100,12 +104,7 @@ spec:
       containers:
         - name: student-backend
           image: raminkr/teachme-student-service:10d08d4167d833a3b760ca9f638855d74b7d3bdc
-          command: ["java", "-jar", "/app/student-service.jar"]
-          args:
-            [
-              "--spring.data.redis.host=redis-service",
-              "--kafka-config.bootstrap-server=http://kafka-service:9092",
-            ]
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -135,6 +134,10 @@ spec:
                   key: MONGODB_STUDENT_SERVICE
             - name: SPRING_DATA_MONGODB_DATABASE
               value: students
+            - name: KAFKA_CONFIG_BOOTSTRAP_SERVER
+              value: kafka-service:9092
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis-service
 ---
 apiVersion: v1
 kind: Service
@@ -152,6 +155,7 @@ spec:
 ############################################################################################################
 # Course Service
 ############################################################################################################
+# https://hub.docker.com/r/pedlopruz/course-service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -208,6 +212,7 @@ spec:
 ############################################################################################################
 # Forum Service
 ############################################################################################################
+# https://hub.docker.com/r/martirl11/forum-service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -225,6 +230,7 @@ spec:
       containers:
         - name: forum-backend
           image: martirl11/forum-service:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -264,6 +270,7 @@ spec:
 ############################################################################################################
 # Rating Service
 ############################################################################################################
+# https://hub.docker.com/r/lucperrom1/rating-service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -280,7 +287,8 @@ spec:
     spec:
       containers:
         - name: rating-backend
-          image: lucperrom1/teachme-ratings-service-rating-service:latest
+          image: lucperrom1/rating-service:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -293,14 +301,20 @@ spec:
                   key: MONGODB_RATING_SERVICE
             - name: SPRING_DATA_MONGODB_DATABASE
               value: ratings
-            - name: BASE_URL
+            - name: AUTH_URL
               value: http://auth-service:8080/api/v1/users/
             - name: RATING_URL
               value: /rating
             - name: COURSES_URL
-              value: http://course-service:8080/api/v1/courses
+              value: http://course-service:8080/api/v1/courses/
             - name: STUDENT_URL
               value: http://student-service:8080/api/v1/students/me
+            - name: BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BASE_URL
+
 ---
 apiVersion: v1
 kind: Service
@@ -324,6 +338,7 @@ spec:
 ############################################################################################################
 # Notification Service
 ############################################################################################################
+# https://hub.docker.com/r/raminkr/teachme-notification-service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -340,13 +355,8 @@ spec:
     spec:
       containers:
         - name: notification-backend
-          image: raminkr/teachme-notification-service:2936599f41e5a645c092a8848514103096760fac
-          command: ["java", "-jar", "/app/notification-service.jar"]
-          args:
-            [
-              "--spring.data.redis.host=redis-service",
-              "--kafka-config.bootstrap-server=http://kafka-service:9092",
-            ]
+          image: raminkr/teachme-notification-service:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -374,6 +384,8 @@ spec:
                   key: MONGODB_STUDENT_SERVICE
             - name: SPRING_DATA_MONGODB_DATABASE
               value: students
+            - name: KAFKA_CONFIG_BOOTSTRAP_SERVER
+              value: kafka-service:9092
 ---
 apiVersion: v1
 kind: Service
@@ -388,32 +400,23 @@ spec:
       targetPort: 8080
   type: ClusterIP
 ---
-############################################################################################################
-# Ingress Controller for Websocket Connections
-############################################################################################################
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: v1
+kind: Service
 metadata:
-  name: notification-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+  name: notification-websocket-service
 spec:
-  rules:
-    - host: notification.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: notification-service
-                port:
-                  number: 8080
+  selector:
+    app: notification-backend
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 8080
 ---
 ############################################################################################################
 # Frontend Service
 ############################################################################################################
+# https://github.com/TeachMe-CloudUS/teachme-frontend/pkgs/container/teachme-frontend
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -431,16 +434,11 @@ spec:
       containers:
         - name: frontend-backend
           image: ghcr.io/teachme-cloudus/teachme-frontend:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 3000
               protocol: TCP
-          env:
-            - name: VITE_OPENAI_API_KEY
-              valueFrom:
-                configMapKeyRef:
-                  name: teachme-config
-                  key: OPENAI_API_KEY
 ---
 apiVersion: v1
 kind: Service
@@ -458,6 +456,7 @@ spec:
 ############################################################################################################
 # API Gateway
 ############################################################################################################
+# https://github.com/TeachMe-CloudUS/teachme-api-gateway/pkgs/container/teachme-api-gateway
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -475,6 +474,7 @@ spec:
       containers:
         - name: gateway-backend
           image: ghcr.io/teachme-cloudus/teachme-api-gateway:master
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
@@ -531,10 +531,8 @@ metadata:
 spec:
   selector:
     app: gateway-backend
+  type: LoadBalancer
   ports:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-  type: NodePort
----
-
