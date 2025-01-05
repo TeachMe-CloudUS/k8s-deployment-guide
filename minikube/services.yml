@@ -355,6 +355,8 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
+            - name: MONGO_DATABASE
+              value: certificate_db
             - name: MONGODB_URI_USER
               valueFrom:
                 configMapKeyRef:
@@ -362,11 +364,23 @@ spec:
                   key: MONGODB_CERTIFICATION_SERVICE
             - name: MONGO_COLLECTION_NAME
               value: student_certificates
+            - name: AZURE_STORAGE_ACCOUNT_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BLOB_STORAGE_ACCOUNT_NAME
             - name: BLOB_STORAGE_CONNECTION_STRING
               valueFrom:
                 configMapKeyRef:
                   name: teachme-config
                   key: BLOB_STORAGE_CONNECTION_STRING
+            - name: BLOB_STORAGE_CONTAINER_NAME
+              value: certificates
+            - name: AZURE_STORAGE_ACCOUNT_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BLOB_STORAGE_ACCOUNT_KEY
             - name: CERTIFICATES_DIR
               value: /app/certificates
             - name: PFX_PASSPHRASE

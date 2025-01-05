@@ -20,6 +20,8 @@ data:
   AZURITE_ACCOUNTS: teachmeblobstorage:3QJ6Q6Q6
   BLOB_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=teachmeblobstorage;AccountKey=3QJ6Q6Q6;BlobEndpoint=http://blob-storage-service:10000/teachmeblobstorage;QueueEndpoint=http://blob-storage-service:10001/teachmeblobstorage;TableEndpoint=http://blob-storage-service:10002/teachmeblobstorage
   BLOB_STORAGE_CONTAINER_NAME: teachme
+  BLOB_STORAGE_ACCOUNT_NAME: teachmeblobstorage
+  BLOB_STORAGE_ACCOUNT_KEY: 3QJ6Q6Q6
 
   OPENAI_API_KEY: YOUR_OPENAI_API_KEY_HERE
   YOUTUBE_API_KEY: YOUR_YOUTUBE_API_KEY_HERE
