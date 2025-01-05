@@ -103,7 +103,7 @@ spec:
     spec:
       containers:
         - name: student-backend
-          image: raminkr/teachme-student-service:10d08d4167d833a3b760ca9f638855d74b7d3bdc
+          image: raminkr/teachme-student-service:latest
           imagePullPolicy: Always
           ports:
             - name: http
