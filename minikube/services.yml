@@ -5,8 +5,8 @@
 # - Course Service
 # - Forum Service
 # - Rating Service
-# - Certification Service (TODO)
-# - Notification Service (TODO)
+# - Certification Service
+# - Notification Service
 # - Frontend Service
 # - API Gateway
 ############################################################################################################
@@ -332,9 +332,76 @@ spec:
 ############################################################################################################
 # Certification Service
 ############################################################################################################
-#
-# TODO: Add the Certification Service Deployment and Service here
-#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: certification-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: certification-backend
+  template:
+    metadata:
+      labels:
+        app: certification-backend
+    spec:
+      containers:
+        - name: certification-backend
+          image: lydpayus/teachme-certification-service:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: MONGODB_URI_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: MONGODB_CERTIFICATION_SERVICE
+            - name: MONGO_COLLECTION_NAME
+              value: student_certificates
+            - name: BLOB_STORAGE_CONNECTION_STRING
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BLOB_STORAGE_CONNECTION_STRING
+            - name: CERTIFICATES_DIR
+              value: /app/certificates
+            - name: PFX_PASSPHRASE
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: PFX_PASSPHRASE
+            - name: SIGNATURE_FIELD_NAME
+              value: Signature1
+            - name: KAFKA_BOOTSTRAP_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: KAFKA_BOOTSTRAP_SERVER
+            - name: SIGNATURE_BOX
+              value: 150,30,450,90
+            - name: QR_CODE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: QR_CODE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: certification-service
+spec:
+  selector:
+    app: certification-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
 ############################################################################################################
 # Notification Service
 ############################################################################################################
