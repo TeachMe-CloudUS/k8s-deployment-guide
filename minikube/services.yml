@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: auth-backend
-          image: ghcr.io/teachme-cloudus/teachme-auth-service:latest
+          image: ghcr.io/teachme-cloudus/teachme-auth-service:develop
           imagePullPolicy: Always
           ports:
             - name: http
@@ -61,8 +61,10 @@ spec:
                 configMapKeyRef:
                   name: teachme-config
                   key: BASE_URL
-            - name: KAFKA_SERVICE_URI
-              value: kafka-service:9092
+            - name: SPRING_KAFKA_ENABLED
+              value: "true"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
           readinessProbe:
             httpGet:
               path: /api/health
@@ -112,16 +114,6 @@ spec:
           env:
             - name: BLOB_STORAGE_CONTAINER_NAME
               value: profile-pictures
-            - name: GATEWAY_SERVER_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: teachme-config
-                  key: BASE_URL
-            - name: SPRING_DATA_REDIS_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: teachme-config
-                  key: REDIS_HOST
             - name: BLOB_STORAGE_CONNECTION_STRING
               valueFrom:
                 configMapKeyRef:
@@ -145,7 +137,14 @@ spec:
             - name: SPRING_DATA_MONGODB_DATABASE
               value: students
             - name: KAFKA_CONFIG_BOOTSTRAP_SERVER
-              value: kafka-service:9092
+              value: kafka:9092
+            - name: GATEWAY_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BASE_URL
+            - name: SPRING_DATA_REDIS_HOST
+              value: "redis-service"
             - name: TEACHME_CACHE_ENABLED
               value: "true"
 ---
@@ -342,6 +341,7 @@ spec:
 ############################################################################################################
 # Certification Service
 ############################################################################################################
+# https://hub.docker.com/r/lydpayus/teachme-certification-service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -401,17 +401,11 @@ spec:
             - name: SIGNATURE_FIELD_NAME
               value: Signature1
             - name: KAFKA_BOOTSTRAP_SERVER
-              valueFrom:
-                configMapKeyRef:
-                  name: teachme-config
-                  key: KAFKA_BOOTSTRAP_SERVER
+              value: kafka:9092
             - name: SIGNATURE_BOX
               value: 150,30,450,90
             - name: QR_CODE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: teachme-config
-                  key: QR_CODE_URL
+              value: www.google.com
 ---
 apiVersion: v1
 kind: Service
@@ -458,11 +452,6 @@ spec:
                 configMapKeyRef:
                   name: teachme-config
                   key: SECRET_KEY
-            - name: GATEWAY_SERVER_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: teachme-config
-                  key: BASE_URL
             - name: TEACHME_STUDENT_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
@@ -481,7 +470,12 @@ spec:
             - name: SPRING_DATA_MONGODB_DATABASE
               value: students
             - name: KAFKA_CONFIG_BOOTSTRAP_SERVER
-              value: kafka-service:9092
+              value: kafka:9092
+            - name: GATEWAY_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: teachme-config
+                  key: BASE_URL
 ---
 apiVersion: v1
 kind: Service

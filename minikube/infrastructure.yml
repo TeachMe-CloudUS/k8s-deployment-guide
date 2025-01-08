@@ -6,6 +6,20 @@
 ############################################################################################################
 # Kafka
 ############################################################################################################
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-network
+spec:
+  podSelector:
+    matchLabels:
+      network/kafka-network: "true"
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              network/kafka-network: "true"
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -20,32 +34,34 @@ spec:
     metadata:
       labels:
         app: zookeeper
+        network/kafka-network: "true"
     spec:
       containers:
         - name: zookeeper
-          image: confluentinc/cp-zookeeper:latest
+          image: confluentinc/cp-zookeeper:7.4.4
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 2181
           env:
             - name: ZOOKEEPER_CLIENT_PORT
               value: "2181"
-            - name: ZOOKEEPER_SERVER_ID
-              value: "1"
+            - name: ZOOKEEPER_TICK_TIME
+              value: "2000"
+      hostname: zookeeper
       restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: zookeeper-service
+  name: zookeeper
 spec:
   selector:
     app: zookeeper
   ports:
-    - protocol: TCP
+    - name: "default"
       port: 2181
       targetPort: 2181
-  type: ClusterIP
+  # type: ClusterIP
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -53,7 +69,7 @@ metadata:
   name: kafka
 spec:
   serviceName: kafka
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: kafka
@@ -61,46 +77,46 @@ spec:
     metadata:
       labels:
         app: kafka
+        network/kafka-network: "true"
     spec:
       containers:
         - name: kafka
-          image: confluentinc/cp-kafka:latest
+          image: confluentinc/cp-kafka:7.4.4
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9092
             - containerPort: 29092
           env:
-            - name: KAFKA_LISTENERS
-              value: "LISTENER_EXTERNAL://:9092,INTERNAL://:29092"
             - name: KAFKA_ADVERTISED_LISTENERS
-              value: "LISTENER_EXTERNAL://:9092,INTERNAL://:29092"
+              value: "INTERNAL://kafka:9092,EXTERNAL://kafka:29092"
             - name: KAFKA_INTER_BROKER_LISTENER_NAME
               value: "INTERNAL"
             - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
-              value: "INTERNAL:PLAINTEXT,LISTENER_EXTERNAL:PLAINTEXT"
+              value: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
             - name: KAFKA_ZOOKEEPER_CONNECT
-              value: "zookeeper-service:2181"
+              value: "zookeeper:2181"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
             - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
               value: "true"
+      hostname: kafka
       restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: kafka-service
+  name: kafka
 spec:
+  clusterIP: None
   selector:
     app: kafka
   ports:
     - name: external
-      protocol: TCP
       port: 9092
       targetPort: 9092
     - name: internal
-      protocol: TCP
       port: 29092
       targetPort: 29092
-  type: ClusterIP
 ---
 apiVersion: apps/v1
 kind: Deployment
